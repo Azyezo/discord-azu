@@ -6,25 +6,69 @@ import datetime
 from typing import Dict, Any, Optional, Union
 from config.settings import EMBED_COLOR
 
-def parse_time_string(time_str: str, user_locale: str = None) -> Union[int, str]:
+def parse_time_string(time_str: str, guild_id: int = None) -> Union[int, str]:
     """Parse a time string and return timestamp or original string if parsing fails"""
     try:
         import dateutil.parser
-        from dateutil import tz
+        import re
+        from datetime import timezone, timedelta
+        from config.settings import DEFAULT_USER_TIMEZONE_OFFSET
+        
+        # Check if user specified timezone in their input (e.g., "7PM UTC+3", "8PM EST")
+        tz_patterns = [
+            r'UTC([+-]\d{1,2})',  # UTC+3, UTC-5
+            r'GMT([+-]\d{1,2})',  # GMT+3, GMT-5
+        ]
+        
+        user_tz_offset = None
+        original_time_str = time_str
+        for pattern in tz_patterns:
+            match = re.search(pattern, time_str, re.IGNORECASE)
+            if match:
+                user_tz_offset = int(match.group(1))
+                # Remove timezone from string for parsing
+                time_str = re.sub(pattern, '', time_str, flags=re.IGNORECASE).strip()
+                break
         
         # Parse the time string
         dt = dateutil.parser.parse(time_str, fuzzy=True)
         
-        # If no timezone info, assume user's local timezone
-        if dt.tzinfo is None:
-            # Use local timezone of the system where bot runs
-            # This will be interpreted as the user's local time
-            dt = dt.replace(tzinfo=tz.tzlocal())
+        # If user didn't specify timezone, get guild's default or use global default
+        if user_tz_offset is None:
+            if guild_id:
+                try:
+                    from database.firebase_client import get_db
+                    db = get_db()
+                    guild_config_doc = db.collection('guild_configs').document(str(guild_id)).get()
+                    if guild_config_doc.exists:
+                        guild_config = guild_config_doc.to_dict()
+                        user_tz_offset = guild_config.get('default_timezone_offset', DEFAULT_USER_TIMEZONE_OFFSET)
+                        print(f"🌍 Using guild timezone setting: UTC{user_tz_offset:+d}")
+                    else:
+                        user_tz_offset = DEFAULT_USER_TIMEZONE_OFFSET
+                        print(f"🌍 No guild timezone set, using default: UTC{user_tz_offset:+d}")
+                except Exception as e:
+                    print(f"⚠️ Failed to get guild timezone, using default: {e}")
+                    user_tz_offset = DEFAULT_USER_TIMEZONE_OFFSET
+            else:
+                user_tz_offset = DEFAULT_USER_TIMEZONE_OFFSET
+                print(f"🌍 No guild ID provided, using default timezone: UTC{user_tz_offset:+d}")
         
-        # Convert to UTC timestamp for Discord
-        return int(dt.timestamp())
+        # Create timezone-aware datetime (user's local time)
+        user_tz = timezone(timedelta(hours=user_tz_offset))
+        dt = dt.replace(tzinfo=user_tz)
         
-    except Exception:
+        # Convert to UTC timestamp for storage
+        timestamp = int(dt.timestamp())
+        
+        # Show what we interpreted
+        utc_dt = dt.astimezone(timezone.utc)
+        print(f"🕐 Parsed '{original_time_str}' as {dt} -> UTC: {utc_dt} -> timestamp: {timestamp}")
+        
+        return timestamp
+        
+    except Exception as e:
+        print(f"Time parsing error for '{time_str}': {e}")
         # If parsing fails, return original string
         return time_str
 

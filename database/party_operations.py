@@ -10,7 +10,15 @@ class PartyOperations:
     """Handle all party-related database operations"""
     
     def __init__(self):
-        self.db = get_db()
+        self._db = None
+    
+    @property
+    def db(self):
+        """Get database client with lazy initialization"""
+        if self._db is None:
+            from database.firebase_client import get_db
+            self._db = get_db()
+        return self._db
     
     def create_party(self, guild_id: int, channel_id: int, party_name: str, 
                     party_timestamp: Any, created_by: int) -> str:
@@ -132,6 +140,7 @@ class PartyOperations:
     def get_guild_parties(self, guild_id: int) -> List[Dict]:
         """Get all parties for a guild"""
         try:
+            print(f"🔍 Searching for parties in guild {guild_id}")
             parties_ref = self.db.collection('parties')
             query = parties_ref.where('guild_id', '==', guild_id).order_by('created_at', direction=firestore.Query.DESCENDING)
             parties = query.stream()
@@ -141,11 +150,13 @@ class PartyOperations:
                 party_data = party_doc.to_dict()
                 party_data['id'] = party_doc.id
                 party_list.append(party_data)
+                print(f"  📝 Found party: {party_data.get('party_name', 'Unknown')} (ID: {party_doc.id[:8]}...)")
             
+            print(f"✅ Found {len(party_list)} total parties for guild {guild_id}")
             return party_list
             
         except Exception as e:
-            print(f"❌ Error getting guild parties: {e}")
+            print(f"❌ Error getting guild parties for {guild_id}: {e}")
             return []
     
     def delete_party(self, party_id: str) -> bool:
