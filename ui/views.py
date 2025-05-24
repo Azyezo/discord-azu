@@ -163,9 +163,8 @@ class PartyView(discord.ui.View):
             
             if channel_id and message_id:
                 try:
-                    # Import bot here to avoid circular dependency
-                    from main import bot
-                    channel = bot.get_channel(channel_id)
+                    # Use the interaction's client instead of importing bot
+                    channel = interaction.client.get_channel(channel_id)
                     if channel:
                         message = await channel.fetch_message(message_id)
                         await message.edit(embed=embed, view=self)

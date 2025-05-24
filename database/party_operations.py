@@ -62,6 +62,7 @@ class PartyOperations:
             # Check if party exists
             party_doc = party_ref.get()
             if not party_doc.exists:
+                print(f"❌ Party {party_id} not found during update")
                 return False
             
             # Add timestamp to updates
@@ -69,10 +70,11 @@ class PartyOperations:
             
             # Update party
             party_ref.update(updates)
+            print(f"✅ Successfully updated party {party_id}")
             return True
             
         except Exception as e:
-            print(f"❌ Error updating party: {e}")
+            print(f"❌ Error updating party {party_id}: {e}")
             return False
     
     def update_message_id(self, party_id: str, message_id: int) -> bool:
@@ -87,6 +89,7 @@ class PartyOperations:
             # Check if party exists
             party_doc = party_ref.get()
             if not party_doc.exists:
+                print(f"❌ Party {party_id} not found when adding member")
                 return False
             
             # Add/update member
@@ -98,10 +101,11 @@ class PartyOperations:
                     'joined_at': firestore.SERVER_TIMESTAMP
                 }
             })
+            print(f"✅ Added {username} as {role} to party {party_id}")
             return True
             
         except Exception as e:
-            print(f"❌ Error adding member to party: {e}")
+            print(f"❌ Error adding member to party {party_id}: {e}")
             return False
     
     def remove_member(self, party_id: str, user_id: int) -> bool:
