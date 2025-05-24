@@ -11,6 +11,8 @@ def parse_time_string(time_str: str, guild_id: int = None) -> Union[int, str]:
     try:
         import dateutil.parser
         
+        time_str = time_str.lower()
+        
         # Parse time as UTC - users should input UTC time
         dt = dateutil.parser.parse(time_str, fuzzy=True)
         return int(dt.timestamp())
