@@ -10,16 +10,9 @@ def parse_time_string(time_str: str, guild_id: int = None) -> Union[int, str]:
     """Parse a time string and return timestamp or original string if parsing fails"""
     try:
         import dateutil.parser
-        from dateutil import tz
         
-        # Parse the time string
+        # Parse time as UTC - users should input UTC time
         dt = dateutil.parser.parse(time_str, fuzzy=True)
-        
-        # If no timezone info, assume server's local timezone
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=tz.tzlocal())
-        
-        # Convert to UTC timestamp for Discord
         return int(dt.timestamp())
         
     except Exception:
