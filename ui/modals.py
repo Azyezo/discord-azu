@@ -84,10 +84,28 @@ class PartyEditModal(discord.ui.Modal, title="✏️ Edit Party"):
             if success:
                 await interaction.response.send_message("✅ Party updated successfully!", ephemeral=True)
                 
-                # Update embed - import here to avoid circular dependency
-                from ui.views import PartyView
-                view = PartyView(self.party_id, None)
-                await view.update_embed(interaction)
+                # Get updated party data and refresh the view
+                party_data = party_ops.get_party(self.party_id)
+                if party_data:
+                    embed = format_party_embed(party_data)
+                    
+                    # Create a fresh view with the same party ID and creator
+                    from ui.views import PartyView
+                    creator_id = party_data.get('created_by')
+                    view = PartyView(self.party_id, creator_id)
+                    
+                    # Update the original message
+                    channel_id = party_data.get('channel_id')
+                    message_id = party_data.get('message_id')
+                    
+                    if channel_id and message_id:
+                        try:
+                            channel = interaction.client.get_channel(channel_id)
+                            if channel:
+                                message = await channel.fetch_message(message_id)
+                                await message.edit(embed=embed, view=view)
+                        except Exception as e:
+                            print(f"Failed to update message after edit: {e}")
             else:
                 await interaction.response.send_message("❌ Update failed! Party not found.", ephemeral=True)
             
