@@ -140,9 +140,9 @@ class PartyOperations:
     def get_guild_parties(self, guild_id: int) -> List[Dict]:
         """Get all parties for a guild"""
         try:
-            print(f"🔍 Searching for parties in guild {guild_id}")
             parties_ref = self.db.collection('parties')
-            query = parties_ref.where('guild_id', '==', guild_id).order_by('created_at', direction=firestore.Query.DESCENDING)
+            # Remove ordering to avoid database index requirement
+            query = parties_ref.where('guild_id', '==', guild_id)
             parties = query.stream()
             
             party_list = []
@@ -150,13 +150,17 @@ class PartyOperations:
                 party_data = party_doc.to_dict()
                 party_data['id'] = party_doc.id
                 party_list.append(party_data)
-                print(f"  📝 Found party: {party_data.get('party_name', 'Unknown')} (ID: {party_doc.id[:8]}...)")
             
-            print(f"✅ Found {len(party_list)} total parties for guild {guild_id}")
+            # Sort in Python instead of Firestore
+            try:
+                party_list.sort(key=lambda x: x.get('created_at', 0), reverse=True)
+            except:
+                pass
+            
             return party_list
             
         except Exception as e:
-            print(f"❌ Error getting guild parties for {guild_id}: {e}")
+            print(f"❌ Error getting guild parties: {e}")
             return []
     
     def delete_party(self, party_id: str) -> bool:

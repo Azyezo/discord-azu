@@ -19,7 +19,6 @@ class FirebaseClient:
     def initialize(self):
         """Initialize Firebase connection"""
         if self._db is not None:
-            print("✅ Firebase already initialized, returning existing connection")
             return self._db
             
         try:
@@ -27,17 +26,16 @@ class FirebaseClient:
             try:
                 firebase_admin.get_app()
                 self._db = firestore.client()
-                print("✅ Firebase app was already initialized!")
+                print("✅ Firebase already initialized!")
                 return self._db
             except ValueError:
                 # App not initialized, initialize it
-                print("🔄 Initializing Firebase for the first time...")
                 service_account_info = json.loads(FIREBASE_SERVICE_ACCOUNT)
                 cred = credentials.Certificate(service_account_info)
                 firebase_admin.initialize_app(cred)
                 
                 self._db = firestore.client()
-                print("✅ Firebase initialized successfully!")
+                print("✅ Firebase initialized!")
                 return self._db
                 
         except Exception as e:
@@ -56,4 +54,4 @@ firebase_client = FirebaseClient()
 
 def get_db():
     """Get the Firebase database client"""
-    return firebase_client.db
+    return firebase_client.initialize()  # Call initialize() directly to ensure connection
