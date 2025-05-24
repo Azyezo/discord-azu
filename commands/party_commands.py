@@ -18,9 +18,10 @@ class PartyCommands(commands.Cog):
     @app_commands.command(name="party", description="Create a new party")
     @app_commands.describe(
         name="Party name",
-        starttime="When does the party start? Use your timezone (e.g. 'Tomorrow 7PM UTC+3', 'Friday 8PM UTC-5')"
+        starttime="When does the party start? Use your timezone (e.g. 'Tomorrow 7PM UTC+3', 'Friday 8PM UTC-5')",
+        pingrole="Optional: Role to ping when creating the party (e.g. @Raiders, @PvP Team)"
     )
-    async def create_party(self, interaction: discord.Interaction, name: str, starttime: str):
+    async def create_party(self, interaction: discord.Interaction, name: str, starttime: str, pingrole: discord.Role = None):
         """Create a new party"""
         try:
             # Parse the time and convert to Discord timestamp if possible
@@ -51,14 +52,20 @@ class PartyCommands(commands.Cog):
             # Create view
             view = PartyView(party_id, interaction.user.id)
             
-            # Send message
-            await interaction.response.send_message(embed=embed, view=view)
+            # Prepare message content with optional role ping
+            message_content = None
+            if pingrole:
+                message_content = f"{pingrole.mention}"
+            
+            # Send message with optional ping
+            await interaction.response.send_message(content=message_content, embed=embed, view=view)
             
             # Save message ID
             message = await interaction.original_response()
             party_ops.update_message_id(party_id, message.id)
             
-            print(f"✅ Party created: {name} at {starttime}")
+            pinginfo = f" with ping to {pingrole.name}" if pingrole else ""
+            print(f"✅ Party created: {name} at {starttime}{pinginfo}")
             
         except Exception as e:
             print(f"❌ Error creating party: {e}")
@@ -68,11 +75,15 @@ class PartyCommands(commands.Cog):
     async def list_parties(self, interaction: discord.Interaction):
         """List all parties in the server"""
         try:
+            print(f"🔍 User {interaction.user.display_name} requested parties for guild {interaction.guild.id}")
+            
             # Get all parties for this guild
             party_list = party_ops.get_guild_parties(interaction.guild.id)
             
+            print(f"📊 Query returned {len(party_list)} parties")
+            
             if not party_list:
-                await interaction.response.send_message("📭 No parties found!", ephemeral=True)
+                await interaction.response.send_message("📭 No parties found!\n\n*If you just created a party, try the `/admin-debug-db` command to check the database.*", ephemeral=True)
                 return
             
             # Create embed
@@ -82,7 +93,7 @@ class PartyCommands(commands.Cog):
             
         except Exception as e:
             print(f"❌ Error listing parties: {e}")
-            await interaction.response.send_message("❌ Failed to list parties!", ephemeral=True)
+            await interaction.response.send_message("❌ Failed to list parties! Try `/admin-debug-db` to check the database.", ephemeral=True)
 
 async def setup(bot):
     """Setup function for the cog"""
