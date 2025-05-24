@@ -4,9 +4,61 @@ Discord UI Views
 import discord
 from typing import Optional
 from database.party_operations import party_ops
-from config.settings import EMBED_COLOR, DEFAULT_TANK_SLOTS, DEFAULT_HEALER_SLOTS, DEFAULT_DPS_SLOTS
+from config.settings import EMBED_COLOR, DEFAULT_TANK_SLOTS, DEFAULT_HEALER_SLOTS, DEFAULT_DPS_SLOTS, SUCCESS_COLOR
 from utils.helpers import format_party_embed
 from ui.modals import PartyEditModal
+
+class DeleteConfirmView(discord.ui.View):
+    """Confirmation view for deleting a party"""
+    
+    def __init__(self, party_id: str, party_name: str):
+        super().__init__(timeout=60)  # 1 minute timeout
+        self.party_id = party_id
+        self.party_name = party_name
+    
+    @discord.ui.button(label='Yes, Delete', style=discord.ButtonStyle.danger, emoji='🗑️')
+    async def confirm_delete(self, interaction: discord.Interaction, button: discord.ui.Button):
+        try:
+            # Delete the party
+            success = party_ops.delete_party(self.party_id)
+            
+            if success:
+                # Try to delete the original message too
+                party_data = party_ops.get_party(self.party_id)  # This will return None now
+                
+                embed = discord.Embed(
+                    title="🗑️ Party Deleted",
+                    description=f"Successfully deleted **{self.party_name}**",
+                    color=SUCCESS_COLOR
+                )
+                
+                # Disable all buttons
+                for item in self.children:
+                    item.disabled = True
+                
+                await interaction.response.edit_message(embed=embed, view=self)
+                
+                print(f"🗑️ Party {self.party_id} ({self.party_name}) deleted by {interaction.user.display_name}")
+            else:
+                await interaction.response.send_message("❌ Failed to delete party!", ephemeral=True)
+        
+        except Exception as e:
+            print(f"Error in confirm_delete: {e}")
+            await interaction.response.send_message("❌ Delete failed!", ephemeral=True)
+    
+    @discord.ui.button(label='Cancel', style=discord.ButtonStyle.secondary, emoji='❌')
+    async def cancel_delete(self, interaction: discord.Interaction, button: discord.ui.Button):
+        # Disable all buttons
+        for item in self.children:
+            item.disabled = True
+        
+        embed = discord.Embed(
+            title="❌ Cancelled",
+            description="Party deletion cancelled.",
+            color=0x95A5A6
+        )
+        
+        await interaction.response.edit_message(embed=embed, view=self)
 
 class PartyView(discord.ui.View):
     """View for party interaction buttons"""
@@ -64,9 +116,14 @@ class PartyView(discord.ui.View):
     
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         """Check if user can interact with buttons"""
-        # For edit button, only show to creator
-        if interaction.data.get('custom_id') == 'edit_party':
-            return interaction.user.id == self.creator_id
+        custom_id = interaction.data.get('custom_id')
+        
+        # For edit and delete buttons, only show to creator or admins
+        if custom_id in ['edit_party', 'delete_party']:
+            is_creator = interaction.user.id == self.creator_id
+            is_admin = interaction.user.guild_permissions.administrator
+            return is_creator or is_admin
+        
         return True
     
     @discord.ui.button(label='Edit Party', style=discord.ButtonStyle.primary, emoji='✏️', row=2, custom_id='edit_party')
@@ -91,6 +148,32 @@ class PartyView(discord.ui.View):
         except Exception as e:
             print(f"Error in edit_party: {e}")
             await interaction.response.send_message("❌ Edit failed!", ephemeral=True)
+    
+    @discord.ui.button(label='Delete Party', style=discord.ButtonStyle.danger, emoji='🗑️', row=2, custom_id='delete_party')
+    async def delete_party(self, interaction: discord.Interaction, button: discord.ui.Button):
+        try:
+            # Get party data first to show party name
+            party_data = party_ops.get_party(self.party_id)
+            if not party_data:
+                await interaction.response.send_message("❌ Party not found!", ephemeral=True)
+                return
+            
+            party_name = party_data.get('party_name', 'Unknown Party')
+            
+            # Create confirmation view
+            confirm_view = DeleteConfirmView(self.party_id, party_name)
+            
+            embed = discord.Embed(
+                title="🗑️ Delete Party",
+                description=f"Are you sure you want to delete **{party_name}**?\n\n⚠️ This action cannot be undone!",
+                color=0xFF5555
+            )
+            
+            await interaction.response.send_message(embed=embed, view=confirm_view, ephemeral=True)
+            
+        except Exception as e:
+            print(f"Error in delete_party: {e}")
+            await interaction.response.send_message("❌ Delete failed!", ephemeral=True)
     
     async def join_role(self, interaction: discord.Interaction, role: str):
         """Handle joining a party with a specific role"""
