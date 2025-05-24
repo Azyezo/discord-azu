@@ -19,9 +19,9 @@ class PartyCommands(commands.Cog):
     @app_commands.describe(
         name="Party name",
         starttime="When does the party start? Use your timezone (e.g. 'Tomorrow 7PM UTC+3', 'Friday 8PM UTC-5')",
-        ping_role="Optional: Role to ping when creating the party (e.g. @Raiders, @PvP Team)"
+        ping="Optional: Who to ping (e.g. @everyone, @Raiders, @PvP Team)"
     )
-    async def create_party(self, interaction: discord.Interaction, name: str, starttime: str, pingrole: discord.Role = None):
+    async def create_party(self, interaction: discord.Interaction, name: str, starttime: str, ping: str = None):
         """Create a new party"""
         try:
             # Parse the time and convert to Discord timestamp if possible
@@ -52,20 +52,14 @@ class PartyCommands(commands.Cog):
             # Create view
             view = PartyView(party_id, interaction.user.id)
             
-            # Prepare message content with optional role ping
-            message_content = None
-            if pingrole:
-                # Use role.mention which properly formats the ping
-                message_content = pingrole.mention
-            
-            # Send message with optional ping
-            await interaction.response.send_message(content=message_content, embed=embed, view=view)
+            # Send message with optional ping text
+            await interaction.response.send_message(content=ping, embed=embed, view=view)
             
             # Save message ID
             message = await interaction.original_response()
             party_ops.update_message_id(party_id, message.id)
             
-            ping_info = f" with ping to {pingrole.name}" if pingrole else ""
+            ping_info = f" with ping: {ping}" if ping else ""
             print(f"✅ Party created: {name} at {starttime}{ping_info}")
             
         except Exception as e:
