@@ -25,7 +25,7 @@ class PartyEditModal(discord.ui.Modal, title="✏️ Edit Party"):
         
         self.starttime_input = discord.ui.TextInput(
             label="🕐 Party Start Time",
-            placeholder="Use UTC time (e.g. 'Tomorrow 4PM UTC', 'Friday 5PM UTC')",
+            placeholder="Use your timezone (e.g. 'Tomorrow 7PM UTC+3', 'Friday 8PM UTC-5')",
             default=current_starttime or "",
             required=False,
             max_length=MAX_STARTTIME_LENGTH

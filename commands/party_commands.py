@@ -18,7 +18,7 @@ class PartyCommands(commands.Cog):
     @app_commands.command(name="party", description="Create a new party")
     @app_commands.describe(
         name="Party name",
-        starttime="When does the party start? Use UTC time (e.g. 'Tomorrow 4PM UTC', 'Friday 5PM UTC')"
+        starttime="When does the party start? Use your timezone (e.g. 'Tomorrow 7PM UTC+3', 'Friday 8PM UTC-5')"
     )
     async def create_party(self, interaction: discord.Interaction, name: str, starttime: str):
         """Create a new party"""
