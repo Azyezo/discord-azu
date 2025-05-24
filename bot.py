@@ -477,7 +477,7 @@ class PartyView(discord.ui.View):
             if cant_attend:
                 cant_attend_text = "\n".join(cant_attend)
             else:
-                cant_attend_text = "*No one has marked Can't Attend*"
+                cant_attend_text = "*Empty*"
             
             embed.add_field(
                 name=f"❌ Can't Attend ({len(cant_attend)})",
