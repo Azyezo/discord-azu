@@ -19,7 +19,7 @@ class PartyCommands(commands.Cog):
     @app_commands.describe(
         name="Party name",
         starttime="When does the party start? Use your timezone (e.g. 'Tomorrow 7PM UTC+3', 'Friday 8PM UTC-5')",
-        pingrole="Optional: Role to ping when creating the party (e.g. @Raiders, @PvP Team)"
+        ping_role="Optional: Role to ping when creating the party (e.g. @Raiders, @PvP Team)"
     )
     async def create_party(self, interaction: discord.Interaction, name: str, starttime: str, pingrole: discord.Role = None):
         """Create a new party"""
@@ -55,7 +55,8 @@ class PartyCommands(commands.Cog):
             # Prepare message content with optional role ping
             message_content = None
             if pingrole:
-                message_content = f"{pingrole.mention}"
+                # Use role.mention which properly formats the ping
+                message_content = pingrole.mention
             
             # Send message with optional ping
             await interaction.response.send_message(content=message_content, embed=embed, view=view)
@@ -64,8 +65,8 @@ class PartyCommands(commands.Cog):
             message = await interaction.original_response()
             party_ops.update_message_id(party_id, message.id)
             
-            pinginfo = f" with ping to {pingrole.name}" if pingrole else ""
-            print(f"✅ Party created: {name} at {starttime}{pinginfo}")
+            ping_info = f" with ping to {pingrole.name}" if pingrole else ""
+            print(f"✅ Party created: {name} at {starttime}{ping_info}")
             
         except Exception as e:
             print(f"❌ Error creating party: {e}")
