@@ -5,6 +5,8 @@ aiosqlite
 attrs
 certifi
 charset-normalizer
+firebase-admin
+firebase
 discord.py
 docopt
 frozenlist
