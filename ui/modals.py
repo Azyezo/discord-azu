@@ -6,7 +6,7 @@ import datetime
 from firebase_admin import firestore
 from database.party_operations import party_ops
 from config.settings import MAX_PARTY_NAME_LENGTH, MAX_STARTTIME_LENGTH
-from utils.helpers import parse_time_string
+from utils.helpers import parse_time_string, format_party_embed
 
 class PartyEditModal(discord.ui.Modal, title="✏️ Edit Party"):
     """Modal for editing party details"""

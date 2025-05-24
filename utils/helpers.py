@@ -10,45 +10,21 @@ def parse_time_string(time_str: str, user_locale: str = None) -> Union[int, str]
     """Parse a time string and return timestamp or original string if parsing fails"""
     try:
         import dateutil.parser
-        import re
-        from datetime import timezone, timedelta
         from dateutil import tz
-        
-        # Check if user specified timezone in their input (e.g., "7PM UTC+3", "8PM EST")
-        tz_patterns = [
-            r'UTC([+-]\d{1,2})',  # UTC+3, UTC-5
-            r'GMT([+-]\d{1,2})',  # GMT+3, GMT-5
-        ]
-        
-        user_tz_offset = None
-        original_time_str = time_str
-        for pattern in tz_patterns:
-            match = re.search(pattern, time_str, re.IGNORECASE)
-            if match:
-                user_tz_offset = int(match.group(1))
-                # Remove timezone from string for parsing
-                time_str = re.sub(pattern, '', time_str, flags=re.IGNORECASE).strip()
-                break
         
         # Parse the time string
         dt = dateutil.parser.parse(time_str, fuzzy=True)
         
-        # If user specified timezone, use it
-        if user_tz_offset is not None:
-            user_tz = timezone(timedelta(hours=user_tz_offset))
-            dt = dt.replace(tzinfo=user_tz)
-        else:
-            # Use server's local timezone as default
-            # This is what most Discord bots do
+        # If no timezone info, assume user's local timezone
+        if dt.tzinfo is None:
+            # Use local timezone of the system where bot runs
+            # This will be interpreted as the user's local time
             dt = dt.replace(tzinfo=tz.tzlocal())
         
-        # Convert to timestamp
-        timestamp = int(dt.timestamp())
-        print(f"🕐 Parsed '{original_time_str}' -> {dt} -> timestamp: {timestamp}")
-        return timestamp
+        # Convert to UTC timestamp for Discord
+        return int(dt.timestamp())
         
-    except Exception as e:
-        print(f"Time parsing error for '{time_str}': {e}")
+    except Exception:
         # If parsing fails, return original string
         return time_str
 
