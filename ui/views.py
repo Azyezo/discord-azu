@@ -118,11 +118,14 @@ class PartyView(discord.ui.View):
         """Check if user can interact with buttons"""
         custom_id = interaction.data.get('custom_id')
         
-        # For edit and delete buttons, only show to creator or admins
+        # For edit and delete buttons, only allow creator or admins
         if custom_id in ['edit_party', 'delete_party']:
             is_creator = interaction.user.id == self.creator_id
             is_admin = interaction.user.guild_permissions.administrator
-            return is_creator or is_admin
+            
+            if not (is_creator or is_admin):
+                await interaction.response.send_message("❌ Only the party creator or admins can edit/delete this party!", ephemeral=True)
+                return False
         
         return True
     
