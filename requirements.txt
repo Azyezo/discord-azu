@@ -1,5 +1,6 @@
 aiohappyeyeballs
 aiohttp
+asyncio
 aiosignal
 aiosqlite
 attrs
