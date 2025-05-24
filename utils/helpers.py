@@ -10,25 +10,9 @@ def parse_time_string(time_str: str) -> Union[int, str]:
     """Parse a time string and return timestamp or original string if parsing fails"""
     try:
         import dateutil.parser
+        # Just parse and convert to timestamp - that's it!
         dt = dateutil.parser.parse(time_str, fuzzy=True)
-        
-        # Handle past times
-        if dt < datetime.datetime.now():
-            if "tomorrow" in time_str.lower():
-                dt = dt.replace(
-                    year=datetime.datetime.now().year,
-                    month=datetime.datetime.now().month,
-                    day=datetime.datetime.now().day
-                ) + datetime.timedelta(days=1)
-            elif dt.time() > datetime.datetime.now().time():
-                # Same day but later time - keep as is
-                pass
-            else:
-                # Assume next year if date seems to be in past
-                dt = dt.replace(year=datetime.datetime.now().year + 1)
-        
         return int(dt.timestamp())
-        
     except Exception:
         # If parsing fails, return original string
         return time_str
